@@ -15,8 +15,11 @@ export async function GET(
     );
   }
 
+  // ✅ FIX: await params from context
+  const { id } = await context.params;
+
   const run = await prisma.run.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       nodeRuns: true,
       workflow: true,
@@ -25,7 +28,7 @@ export async function GET(
 
   if (!run || run.userId !== userId) {
     return NextResponse.json(
-      { error: "Not found" },
+      { error: "Run not found" },
       { status: 404 }
     );
   }
