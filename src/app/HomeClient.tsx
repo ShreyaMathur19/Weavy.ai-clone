@@ -25,7 +25,7 @@ export default function HomeClient() {
     }
   }, [isLoaded, isSignedIn, router]);
 
-  // 🧠 Graph store
+  // 🧠 Zustand Graph Store
   const nodes = useGraphStore((s) => s.nodes);
   const edges = useGraphStore((s) => s.edges);
   const setNodes = useGraphStore((s) => s.setNodes);
@@ -58,7 +58,6 @@ export default function HomeClient() {
       const data = await res.json();
       setCurrentWorkflowId(data.id);
 
-      console.log("Workflow saved:", data.id);
       alert("Workflow saved successfully!");
     } catch (err) {
       console.error("Save error:", err);
@@ -82,8 +81,6 @@ export default function HomeClient() {
 
       const plan = planExecution(nodes, edges, "full");
 
-      console.log("Execution plan:", plan);
-
       const res = await fetch("/api/runs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -94,15 +91,11 @@ export default function HomeClient() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        console.error("Run failed:", error);
         alert("Run failed");
         return;
       }
 
-      const data = await res.json();
-
-      console.log("Run success:", data);
+      await res.json();
       alert("Workflow executed successfully!");
     } catch (err) {
       console.error("Run error:", err);

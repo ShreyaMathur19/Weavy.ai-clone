@@ -6,8 +6,8 @@ interface GraphState {
   nodes: Node[];
   edges: Edge[];
 
-  setNodes: (nodes: Node[]) => void;
-  setEdges: (edges: Edge[]) => void;
+  setNodes: (value: Node[] | ((prev: Node[]) => Node[])) => void;
+  setEdges: (value: Edge[] | ((prev: Edge[]) => Edge[])) => void;
 
   addNode: (type: string) => void;
   onConnect: (connection: Connection) => void;
@@ -19,8 +19,23 @@ export const useGraphStore = create<GraphState>((set, get) => ({
   nodes: [],
   edges: [],
 
-  setNodes: (nodes) => set({ nodes }),
-  setEdges: (edges) => set({ edges }),
+  // ✅ FIXED
+  setNodes: (value) =>
+    set((state) => ({
+      nodes:
+        typeof value === "function"
+          ? value(state.nodes)
+          : value,
+    })),
+
+  // ✅ FIXED
+  setEdges: (value) =>
+    set((state) => ({
+      edges:
+        typeof value === "function"
+          ? value(state.edges)
+          : value,
+    })),
 
   addNode: (type) => {
     const id = nanoid();
