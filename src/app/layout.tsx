@@ -1,5 +1,7 @@
 export const dynamic = "force-dynamic";
+
 import { ClerkProvider } from "@clerk/nextjs";
+import "./globals.css";
 
 export default function RootLayout({
   children,
@@ -7,12 +9,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
-      <html lang="en">
-        <body style={{ margin: 0, background: "#0b0b0f" }}>
+    <html lang="en">
+      <body>
+        <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
           {children}
-        </body>
-      </html>
-    </ClerkProvider>
+        </ClerkProvider>
+      </body>
+    </html>
   );
 }
