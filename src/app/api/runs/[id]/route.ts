@@ -3,8 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const { userId } = await auth();
 
@@ -15,8 +15,8 @@ export async function GET(
     );
   }
 
-  // ✅ FIX: await params from context
-  const { id } = await context.params;
+  // ✅ Await params (required in Next 16)
+  const { id } = await params;
 
   const run = await prisma.run.findUnique({
     where: { id },
