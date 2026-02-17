@@ -1,10 +1,21 @@
 "use client";
 
+import {
+  FileText,
+  Image,
+  Video,
+  Sparkles,
+  Crop,
+  Film,
+  Play,
+  Save,
+} from "lucide-react";
+
 type SidebarProps = {
   onAddNode: (type: string) => void;
   onRun: () => void;
   onSave: () => void;
-  running: boolean; // ✅ Added
+  running: boolean;
 };
 
 export default function Sidebar({
@@ -13,62 +24,97 @@ export default function Sidebar({
   onSave,
   running,
 }: SidebarProps) {
+  const buttonStyle =
+    "flex items-center gap-2 w-full px-3 py-2 rounded-lg text-sm font-medium transition-all hover:bg-neutral-800";
+
   return (
-    <div
-      style={{
-        width: 220,
-        padding: 12,
-        borderRight: "1px solid #333",
-        background: "#0b0b0b",
-        color: "white",
-      }}
-    >
-      <h3>Nodes</h3>
+    <div className="w-64 h-screen bg-neutral-950 text-white border-r border-neutral-800 flex flex-col justify-between p-4">
+      
+      {/* Top Section */}
+      <div>
+        <h2 className="text-lg font-semibold mb-4 text-neutral-300">
+          Workflow Builder
+        </h2>
 
-      <button onClick={() => onAddNode("text")}>Text</button>
-      <button onClick={() => onAddNode("uploadImage")}>
-        Upload Image
-      </button>
-      <button onClick={() => onAddNode("uploadVideo")}>
-        Upload Video
-      </button>
-      <button onClick={() => onAddNode("llm")}>LLM</button>
-      <button onClick={() => onAddNode("cropImage")}>
-        Crop Image
-      </button>
-      <button onClick={() => onAddNode("extractFrame")}>
-        Extract Frame
-      </button>
+        <div className="space-y-2">
+          <p className="text-xs uppercase text-neutral-500 mb-2">
+            Input Nodes
+          </p>
 
-      <hr />
+          <button
+            onClick={() => onAddNode("text")}
+            className={buttonStyle}
+          >
+            <FileText size={16} /> Text
+          </button>
 
-      <button
-        onClick={onSave}
-        style={{
-          marginTop: 10,
-          background: "#3b82f6",
-          color: "white",
-          padding: 8,
-          width: "100%",
-        }}
-      >
-        💾 Save Workflow
-      </button>
+          <button
+            onClick={() => onAddNode("uploadImage")}
+            className={buttonStyle}
+          >
+            <Image size={16} /> Upload Image
+          </button>
 
-      <button
-        onClick={onRun}
-        disabled={running} // ✅ Prevent double run
-        style={{
-          marginTop: 10,
-          background: running ? "#9ca3af" : "#22c55e",
-          color: "black",
-          padding: 8,
-          width: "100%",
-          cursor: running ? "not-allowed" : "pointer",
-        }}
-      >
-        {running ? "Running..." : "▶ Run Workflow"}
-      </button>
+          <button
+            onClick={() => onAddNode("uploadVideo")}
+            className={buttonStyle}
+          >
+            <Video size={16} /> Upload Video
+          </button>
+
+          <p className="text-xs uppercase text-neutral-500 mt-4 mb-2">
+            AI
+          </p>
+
+          <button
+            onClick={() => onAddNode("llm")}
+            className={buttonStyle}
+          >
+            <Sparkles size={16} /> LLM
+          </button>
+
+          <p className="text-xs uppercase text-neutral-500 mt-4 mb-2">
+            Processing
+          </p>
+
+          <button
+            onClick={() => onAddNode("cropImage")}
+            className={buttonStyle}
+          >
+            <Crop size={16} /> Crop Image
+          </button>
+
+          <button
+            onClick={() => onAddNode("extractFrame")}
+            className={buttonStyle}
+          >
+            <Film size={16} /> Extract Frame
+          </button>
+        </div>
+      </div>
+
+      {/* Bottom Section */}
+      <div className="space-y-3">
+        <button
+          onClick={onSave}
+          className="flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 transition text-white font-medium"
+        >
+          <Save size={16} /> Save Workflow
+        </button>
+
+        <button
+          onClick={onRun}
+          disabled={running}
+          className={`flex items-center justify-center gap-2 w-full px-3 py-2 rounded-lg font-medium transition ${
+            running
+              ? "bg-neutral-700 text-neutral-400 cursor-not-allowed"
+              : "bg-green-500 hover:bg-green-400 text-black"
+          }`}
+        >
+          <Play size={16} />
+          {running ? "Running..." : "Run Workflow"}
+        </button>
+      </div>
     </div>
   );
 }
