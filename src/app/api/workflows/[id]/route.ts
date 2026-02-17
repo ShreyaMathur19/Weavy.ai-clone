@@ -3,36 +3,30 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@clerk/nextjs/server";
 
 export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { userId } = await auth();
+  const { id } = await context.params;
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  const { userId } = await auth();
 
-    const workflow = await prisma.workflow.findUnique({
-      where: { id: params.id },
-    });
-
-    if (!workflow || workflow.userId !== userId) {
-      return NextResponse.json(
-        { error: "Workflow not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(workflow);
-  } catch (error) {
-    console.error("GET WORKFLOW ERROR:", error);
+  if (!userId) {
     return NextResponse.json(
-      { error: "Failed to fetch workflow" },
-      { status: 500 }
+      { error: "Unauthorized" },
+      { status: 401 }
     );
   }
+
+  const workflow = await prisma.workflow.findUnique({
+    where: { id },
+  });
+
+  if (!workflow || workflow.userId !== userId) {
+    return NextResponse.json(
+      { error: "Not found" },
+      { status: 404 }
+    );
+  }
+
+  return NextResponse.json(workflow);
 }
