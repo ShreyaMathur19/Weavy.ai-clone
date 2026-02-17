@@ -1,16 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY is not set in environment variables");
-}
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
 export async function runGemini({
   systemPrompt,
   userMessage,
   images = [],
-  modelName = "gemini-1.5-flash", // ✅ stable working model
+  modelName = "gemini-1.5-flash",
 }: {
   systemPrompt?: string;
   userMessage?: string;
@@ -18,23 +12,28 @@ export async function runGemini({
   modelName?: string;
 }) {
   try {
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+      throw new Error("GEMINI_API_KEY is not set in environment variables");
+    }
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+
     const model = genAI.getGenerativeModel({
       model: modelName,
     });
 
     const parts: any[] = [];
 
-    // Add system prompt
     if (systemPrompt) {
       parts.push({ text: systemPrompt });
     }
 
-    // Add user message
     if (userMessage) {
       parts.push({ text: userMessage });
     }
 
-    // Add images (if provided)
     for (const imageUrl of images) {
       if (!imageUrl) continue;
 
@@ -43,7 +42,7 @@ export async function runGemini({
       parts.push({
         inlineData: {
           data: base64,
-          mimeType: "image/png", // Change if needed
+          mimeType: "image/png",
         },
       });
     }
