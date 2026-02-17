@@ -56,9 +56,7 @@ export default function Canvas({
         onEdgesChange={(changes) =>
           setEdges((eds) => applyEdgeChanges(changes, eds))
         }
-        onConnect={(connection) =>
-          setEdges((eds) => addEdge(connection, eds))
-        }
+        onConnect={onConnect}
         fitView
       >
         <MiniMap />

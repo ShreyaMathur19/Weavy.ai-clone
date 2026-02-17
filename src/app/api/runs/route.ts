@@ -5,29 +5,41 @@ import { executeWorkflow } from "../../../../trigger/executeWorkflow";
 
 /* ===========================
    GET /api/runs
+   Fetch all runs for user
    =========================== */
 export async function GET() {
-  const { userId } = await auth();
+  try {
+    const { userId } = await auth();
 
-  if (!userId) {
-    return NextResponse.json([]);
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const runs = await prisma.run.findMany({
+      where: { userId },
+      include: {
+        workflow: true,
+        nodeRuns: true, // 🔥 Important for History panel
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return NextResponse.json(runs);
+  } catch (error) {
+    console.error("GET RUNS ERROR:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch runs" },
+      { status: 500 }
+    );
   }
-
-  const runs = await prisma.run.findMany({
-    where: { userId },
-    include: {
-      workflow: true, // 🔥 THIS FIXES THE ERROR
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  return NextResponse.json(runs);
 }
- 
- 
 
 /* ===========================
    POST /api/runs
+   Create run + trigger execution
    =========================== */
 export async function POST(req: NextRequest) {
   try {
@@ -40,16 +52,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { plan, workflowId } = await req.json();
+    const { workflowId } = await req.json();
 
-    if (!plan || !workflowId) {
+    if (!workflowId) {
       return NextResponse.json(
-        { error: "Missing plan or workflowId" },
+        { error: "Missing workflowId" },
         { status: 400 }
       );
     }
 
-    // Validate workflow exists
+    // Validate workflow ownership
     const workflow = await prisma.workflow.findUnique({
       where: { id: workflowId },
     });
@@ -61,7 +73,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1️⃣ Create run
+    // 1️⃣ Create run record
     const run = await prisma.run.create({
       data: {
         workflowId,
@@ -70,13 +82,9 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // 2️⃣ Execute workflow
-    await executeWorkflow(plan, run.id);
-
-    // 3️⃣ Update run to success
-    await prisma.run.update({
-      where: { id: run.id },
-      data: { status: "success" },
+    // 2️⃣ Trigger background DAG execution
+    await executeWorkflow.trigger({
+      runId: run.id,
     });
 
     return NextResponse.json({

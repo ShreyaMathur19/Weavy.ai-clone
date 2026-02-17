@@ -1,49 +1,62 @@
 "use client";
 
 import { Handle, Position } from "reactflow";
+import { useState, useEffect } from "react";
 
-export default function CropImageNode({ id, data }: any) {
+type CropImageNodeProps = {
+  id: string;
+  data: any;
+};
+
+const CropImageNode = ({ id, data }: CropImageNodeProps) => {
+  const [width, setWidth] = useState<number>(data.width || 400);
+  const [height, setHeight] = useState<number>(data.height || 400);
+
+  useEffect(() => {
+    data?.onChange?.(id, { width, height });
+  }, [width, height]);
+
   return (
-    <div className="bg-white p-4 rounded-xl shadow-md w-64">
-      <div className="font-semibold mb-2">Crop Image</div>
+    <div className="bg-white shadow-lg rounded-xl p-4 w-64 border">
+      <h3 className="font-semibold mb-2">✂ Crop Image</h3>
 
-      <div className="space-y-2 text-sm">
+      <Handle type="target" position={Position.Left} id="image_url" />
+
+      <div className="mb-2">
+        <label className="text-xs text-gray-600">Width</label>
         <input
           type="number"
-          placeholder="X %"
-          className="border p-1 w-full"
-          onChange={(e) =>
-            data.onChange?.(id, { x_percent: Number(e.target.value) })
-          }
-        />
-        <input
-          type="number"
-          placeholder="Y %"
-          className="border p-1 w-full"
-          onChange={(e) =>
-            data.onChange?.(id, { y_percent: Number(e.target.value) })
-          }
-        />
-        <input
-          type="number"
-          placeholder="Width %"
-          className="border p-1 w-full"
-          onChange={(e) =>
-            data.onChange?.(id, { width_percent: Number(e.target.value) })
-          }
-        />
-        <input
-          type="number"
-          placeholder="Height %"
-          className="border p-1 w-full"
-          onChange={(e) =>
-            data.onChange?.(id, { height_percent: Number(e.target.value) })
-          }
+          value={width}
+          onChange={(e) => setWidth(Number(e.target.value))}
+          className="w-full border rounded px-2 py-1 text-sm"
         />
       </div>
 
-      <Handle type="target" position={Position.Left} id="image_url" />
-      <Handle type="source" position={Position.Right} id="cropped_image" />
+      <div className="mb-2">
+        <label className="text-xs text-gray-600">Height</label>
+        <input
+          type="number"
+          value={height}
+          onChange={(e) => setHeight(Number(e.target.value))}
+          className="w-full border rounded px-2 py-1 text-sm"
+        />
+      </div>
+
+      <Handle type="source" position={Position.Right} id="image_url" />
+
+      {/* 🔥 Show Cropped Preview */}
+      {data?.lastOutput?.cropped_url && (
+        <div className="mt-3">
+          <p className="text-xs text-gray-500 mb-1">Cropped Preview</p>
+          <img
+            src={data.lastOutput.cropped_url}
+            alt="Cropped"
+            className="rounded border"
+          />
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default CropImageNode;

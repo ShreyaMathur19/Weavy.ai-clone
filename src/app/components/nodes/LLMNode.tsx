@@ -1,17 +1,16 @@
 "use client";
 
 import { Handle, Position } from "reactflow";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function LLMNode({ id, data }: any) {
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [userMessage, setUserMessage] = useState("");
 
-  const [systemPrompt, setSystemPrompt] = useState(
-    data?.system_prompt || ""
-  );
-
-  const [userMessage, setUserMessage] = useState(
-    data?.user_message || ""
-  );
+  useEffect(() => {
+    setSystemPrompt(data?.system_prompt || "");
+    setUserMessage(data?.user_message || "");
+  }, [data?.system_prompt, data?.user_message]);
 
   const handleSystemChange = (e: any) => {
     const value = e.target.value;
@@ -30,24 +29,20 @@ export default function LLMNode({ id, data }: any) {
   };
 
   return (
-    <div className="bg-white p-4 rounded-xl shadow-md w-80">
-      <div className="font-semibold mb-2">LLM Node</div>
+    <div className="bg-white p-4 rounded-xl shadow-md w-80 border">
+      <div className="font-semibold mb-2">🤖 LLM Node</div>
 
-      {/* Model Select */}
+      {/* MODEL SELECT */}
       <select
         className="border p-1 w-full mb-2"
         onChange={handleModelChange}
-        defaultValue={data?.model || "gemini-1.5-flash"}
+        value={data?.model || "gemini-1.5-flash"}
       >
-        <option value="gemini-1.5-flash">
-          Gemini Flash
-        </option>
-        <option value="gemini-1.5-pro">
-          Gemini Pro
-        </option>
+        <option value="gemini-1.5-flash">Gemini Flash</option>
+        <option value="gemini-1.5-pro">Gemini Pro</option>
       </select>
 
-      {/* System Prompt */}
+      {/* SYSTEM PROMPT */}
       <textarea
         value={systemPrompt}
         onChange={handleSystemChange}
@@ -55,7 +50,7 @@ export default function LLMNode({ id, data }: any) {
         className="w-full border rounded p-2 text-sm mb-2"
       />
 
-      {/* User Message */}
+      {/* USER MESSAGE */}
       <textarea
         value={userMessage}
         onChange={handleUserChange}
@@ -63,20 +58,29 @@ export default function LLMNode({ id, data }: any) {
         className="w-full border rounded p-2 text-sm mb-2"
       />
 
-      {/* Output Display */}
-      {data?.output && (
+      {/* OUTPUT DISPLAY */}
+      {data?.lastOutput?.message && (
         <div className="mt-3 text-sm border-t pt-2 whitespace-pre-wrap">
-          {data.output}
+          {data.lastOutput.message}
         </div>
       )}
 
-      {/* Input Handles */}
-      <Handle type="target" position={Position.Left} id="system_prompt" />
-      <Handle type="target" position={Position.Left} id="user_message" />
-      <Handle type="target" position={Position.Left} id="images" />
+      {/* INPUT HANDLES */}
 
-      {/* Output Handle */}
-      <Handle type="source" position={Position.Right} id="output" />
+     {/* SYSTEM PROMPT INPUT */}
+<Handle type="target" position={Position.Left} id="system_prompt" style={{ top: 80 }} />
+
+{/* USER MESSAGE INPUT */}
+<Handle type="target" position={Position.Left} id="text" style={{ top: 130 }} />
+
+{/* IMAGE INPUT */}
+<Handle type="target" position={Position.Left} id="images" style={{ top: 180 }} />
+      {/* OUTPUT HANDLE */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="message"
+      />
     </div>
   );
 }

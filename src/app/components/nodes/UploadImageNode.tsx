@@ -1,60 +1,90 @@
 "use client";
 
+import { useState } from "react";
 import { Handle, Position } from "reactflow";
-import { useEffect, useState } from "react";
-import Uppy from "@uppy/core";
-import Transloadit from "@uppy/transloadit";
-
-import Dashboard from "@uppy/dashboard";
-
-import "@uppy/core/css/style.min.css";
-import "@uppy/dashboard/css/style.min.css";
 
 export default function UploadImageNode({ id, data }: any) {
-  const [uppy] = useState(() =>
-    new Uppy({
-      restrictions: {
-        allowedFileTypes: ["image/*"],
-      },
-      autoProceed: true,
-    })
-  );
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
- useEffect(() => {
-  const options = {
-    waitForEncoding: true,
-    params:{
-      template_id: process.env.NEXT_PUBLIC_TRANSLOADIT_TEMPLATE ?? "",
-    },
-  } as any; // 👈 only cast options
-
-  uppy.use(Transloadit, options);
-
-  const handleComplete = (assembly: any) => {
-    const file = assembly?.results?.original?.[0];
+  const handleUpload = async (e: any) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
-    const url = file.ssl_url;
-    console.log("Image Uploaded:", url);
+    try {
+      setLoading(true);
+      setError(null);
 
-    data?.onChange?.(id, { image_url: url });
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("Upload failed");
+      }
+
+      const result = await res.json();
+
+      if (!result?.url) {
+        throw new Error("No URL returned from upload API");
+      }
+
+      console.log("Uploaded image URL:", result.url);
+
+      // 🔥 Save into graph store
+      data?.onChange?.(id, {
+        image_url: result.url,
+      });
+
+    } catch (err: any) {
+      console.error("Upload error:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  uppy.on("transloadit:complete", handleComplete);
-
-  return () => {
-    uppy.off("transloadit:complete", handleComplete);
-    uppy.cancelAll();
-    uppy.destroy();
-  };
-}, [uppy, id, data]);
   return (
-    <div className="bg-white p-4 rounded-xl shadow-md w-72">
-      <h3 className="font-semibold mb-2">Upload Image</h3>
+    <div className="bg-white p-4 rounded-xl shadow-md w-64 border">
+      <div className="font-semibold mb-2 text-sm">
+        📤 Upload Image
+      </div>
 
-  
-      {/* Output handle */}
-      <Handle type="source" position={Position.Right} id="image_url" />
+      <input
+        type="file"
+        accept="image/*"
+        onChange={handleUpload}
+      />
+
+      {loading && (
+        <p className="text-xs mt-2 text-blue-600">
+          Uploading...
+        </p>
+      )}
+
+      {error && (
+        <p className="text-xs mt-2 text-red-500">
+          {error}
+        </p>
+      )}
+
+      {data?.image_url && (
+        <img
+          src={data.image_url}
+          className="mt-2 rounded border"
+          alt="preview"
+        />
+      )}
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="image_url"
+      />
     </div>
   );
 }

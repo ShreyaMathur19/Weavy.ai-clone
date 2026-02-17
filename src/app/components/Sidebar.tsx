@@ -3,13 +3,15 @@
 type SidebarProps = {
   onAddNode: (type: string) => void;
   onRun: () => void;
-  onSave: () => void;   // ✅ add this
+  onSave: () => void;
+  running: boolean; // ✅ Added
 };
 
 export default function Sidebar({
   onAddNode,
   onRun,
   onSave,
+  running,
 }: SidebarProps) {
   return (
     <div
@@ -23,18 +25,23 @@ export default function Sidebar({
     >
       <h3>Nodes</h3>
 
-      <button onClick={() => onAddNode("Text")}>Text</button>
-      <button onClick={() => onAddNode("Upload Image")}>Upload Image</button>
-      <button onClick={() => onAddNode("Upload Video")}>Upload Video</button>
-      <button onClick={() => onAddNode("LLM")}>LLM</button>
-      <button onClick={() => onAddNode("Crop Image")}>Crop Image</button>
-      <button onClick={() => onAddNode("Extract Frame")}>
+      <button onClick={() => onAddNode("text")}>Text</button>
+      <button onClick={() => onAddNode("uploadImage")}>
+        Upload Image
+      </button>
+      <button onClick={() => onAddNode("uploadVideo")}>
+        Upload Video
+      </button>
+      <button onClick={() => onAddNode("llm")}>LLM</button>
+      <button onClick={() => onAddNode("cropImage")}>
+        Crop Image
+      </button>
+      <button onClick={() => onAddNode("extractFrame")}>
         Extract Frame
       </button>
 
       <hr />
 
-      {/* ✅ SAVE BUTTON */}
       <button
         onClick={onSave}
         style={{
@@ -50,15 +57,17 @@ export default function Sidebar({
 
       <button
         onClick={onRun}
+        disabled={running} // ✅ Prevent double run
         style={{
           marginTop: 10,
-          background: "#22c55e",
+          background: running ? "#9ca3af" : "#22c55e",
           color: "black",
           padding: 8,
           width: "100%",
+          cursor: running ? "not-allowed" : "pointer",
         }}
       >
-        ▶ Run Workflow
+        {running ? "Running..." : "▶ Run Workflow"}
       </button>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useUser, UserButton } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 
@@ -9,7 +9,6 @@ import Canvas from "@/app/components/Canvas";
 import History from "@/app/components/History";
 
 import { useGraphStore } from "@/store/graphStore";
-import { planExecution } from "@/execution/planExecution";
 
 export default function HomeClient() {
   const { isSignedIn, isLoaded } = useUser();
@@ -18,14 +17,22 @@ export default function HomeClient() {
   const [currentWorkflowId, setCurrentWorkflowId] =
     useState<string | null>(null);
 
-  // 🔐 Redirect if not signed in
+  const [running, setRunning] = useState(false);
+
+  /* ================================
+     Auth Redirect
+  ================================= */
+
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
       router.push("/sign-in");
     }
   }, [isLoaded, isSignedIn, router]);
 
-  // 🧠 Zustand Graph Store
+  /* ================================
+     Graph Store
+  ================================= */
+
   const nodes = useGraphStore((s) => s.nodes);
   const edges = useGraphStore((s) => s.edges);
   const setNodes = useGraphStore((s) => s.setNodes);
@@ -33,9 +40,42 @@ export default function HomeClient() {
   const addNode = useGraphStore((s) => s.addNode);
   const onConnect = useGraphStore((s) => s.onConnect);
 
-  // =============================
-  // 💾 SAVE WORKFLOW
-  // =============================
+  /* ================================
+     Inject onChange into nodes
+  ================================= */
+
+  const onNodeDataChange = useCallback(
+    (id: string, newData: any) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === id
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  ...newData,
+                  onChange: onNodeDataChange,
+                },
+              }
+            : node
+        )
+      );
+    },
+    [setNodes]
+  );
+
+  const enhancedNodes = nodes.map((node) => ({
+    ...node,
+    data: {
+      ...node.data,
+      onChange: onNodeDataChange,
+    },
+  }));
+
+  /* ================================
+     SAVE WORKFLOW
+  ================================= */
+
   const onSave = async () => {
     try {
       const res = await fetch("/api/workflows", {
@@ -50,8 +90,7 @@ export default function HomeClient() {
       });
 
       if (!res.ok) {
-        const error = await res.json();
-        console.error("Save failed:", error);
+        alert("Failed to save workflow");
         return;
       }
 
@@ -60,48 +99,87 @@ export default function HomeClient() {
 
       alert("Workflow saved successfully!");
     } catch (err) {
-      console.error("Save error:", err);
+      console.error(err);
+      alert("Save failed");
     }
   };
 
-  // =============================
-  // ▶ RUN WORKFLOW
-  // =============================
-  const onRun = async () => {
-    try {
-      if (!currentWorkflowId) {
-        alert("Please save workflow first");
-        return;
-      }
+  /* ================================
+     RUN WORKFLOW (Safe Polling)
+  ================================= */
 
-      if (!nodes.length) {
-        alert("Add at least one node");
-        return;
-      }
+const onRun = async () => {
+  if (!currentWorkflowId || running) return;
 
-      const plan = planExecution(nodes, edges, "full");
+  try {
+    setRunning(true);
 
-      const res = await fetch("/api/runs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan,
-          workflowId: currentWorkflowId,
-        }),
-      });
+    // 1️⃣ Create Run
+    const res = await fetch("/api/runs", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ workflowId: currentWorkflowId }),
+    });
 
-      if (!res.ok) {
-        alert("Run failed");
-        return;
-      }
-
-      await res.json();
-      alert("Workflow executed successfully!");
-    } catch (err) {
-      console.error("Run error:", err);
+    if (!res.ok) {
+      alert("Failed to start run");
+      setRunning(false);
+      return;
     }
-  };
 
+    const runData = await res.json();
+    const runId = runData.runId;
+
+    // 2️⃣ Poll Run Status
+    let attempts = 0;
+    const maxAttempts = 60;
+
+    let finalRun: any = null;
+
+    while (attempts < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 1500));
+
+      const runRes = await fetch(`/api/runs/${runId}`);
+      finalRun = await runRes.json();
+
+      if (finalRun.status === "success" || finalRun.status === "failed") {
+        break;
+      }
+
+      attempts++;
+    }
+
+    if (!finalRun || finalRun.status !== "success") {
+      alert("Run failed");
+      return;
+    }
+
+    // 3️⃣ Inject node outputs into current graph
+    const updatedNodes = nodes.map((node: any) => {
+      const nodeRun = finalRun.nodeRuns?.find(
+        (nr: any) => nr.nodeId === node.id
+      );
+
+      if (!nodeRun) return node;
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          lastOutput: nodeRun.output, // 🔥 THIS IS THE KEY
+        },
+      };
+    });
+
+    setNodes(updatedNodes);
+
+  } catch (err) {
+    console.error(err);
+    alert("Run failed");
+  } finally {
+    setRunning(false);
+  }
+};
   if (!isLoaded) return null;
 
   return (
@@ -110,10 +188,15 @@ export default function HomeClient() {
         <UserButton afterSignOutUrl="/" />
       </div>
 
-      <Sidebar onAddNode={addNode} onRun={onRun} onSave={onSave} />
+      <Sidebar
+        onAddNode={addNode}
+        onRun={onRun}
+        onSave={onSave}
+        running={running}
+      />
 
       <Canvas
-        nodes={nodes}
+        nodes={enhancedNodes}
         edges={edges}
         setNodes={setNodes}
         setEdges={setEdges}
